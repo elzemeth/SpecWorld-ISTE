@@ -1,0 +1,119 @@
+# ===================== #
+#   UNITY PROJECT CORE  #
+# ===================== #
+
+Library/
+Temp/
+Obj/
+Logs/
+UserSettings/
+MemoryCaptures/
+build_BackUpThisFolder_ButDontShipItWithYourGame/
+SpecWorld-ISTE_BurstDebugInformation_DoNotShip/
+.plastic/
+.vs/
+.utmpr/
+
+# Build output folders
+Build/
+Builds/
+*.apk
+*.aab
+*.obb
+
+# Exported objects
+ExportedObj/
+
+# Unity Asset Store cache
+/[Aa]ssets/AssetStoreTools*
+
+# Avoid gradle cache
+.gradle/
+.gradle*/
+
+# Crash reports
+CrashReports/
+
+# ===================== #
+#   UNITY AUTO FILES    #
+# ===================== #
+
+*.csproj
+*.sln
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.unityproj
+*.suo
+*.mdb
+*.pdb
+*.opendb
+*.VC.db
+
+# VSCode & JetBrains Rider
+.vscode/
+.idea/
+*.sln.iml
+
+# OS
+.DS_Store
+Desktop.ini
+Thumbs.db
+
+# ===================== #
+#     VR PACKAGES       #
+# ===================== #
+
+# Oculus Integration Plugins (Windows/Android)
+[Aa]ssets/Oculus/VR/Plugins/Android/libs/
+[Aa]ssets/Oculus/VR/Plugins/Win/
+[Aa]ssets/Oculus/VR/Plugins/*/*/*.meta
+[Aa]ssets/Oculus/VR/Plugins/*/*/*.dll
+
+# OpenXR caches
+Library/PackageCache/com.unity.xr.openxr*/
+Library/PackageCache/com.unity.xr.management*/
+
+# XR Interaction Toolkit caches
+Library/PackageCache/com.unity.xr.interaction.toolkit*/
+
+# XR Simulator
+Library/XRDeviceSimulator/
+
+# ===================== #
+#     PLATFORM STUFF    #
+# ===================== #
+
+# Android Gradle
+/[Gg]radle/
+/[Dd]erivedData/
+/[Aa]ssets/Plugins/Android/*
+/[Aa]ssets/Plugins/iOS/*
+
+# Keystore files — never commit
+*.keystore
+*.jks
+
+# ===================== #
+#      OPTIONAL         #
+# ===================== #
+
+# Unity Collaborate
+/[Cc]ollab/
+
+# Local environment files
+*.local
+
+# ===================== #
+#   PROJECT SPECIFIC    #
+# ===================== #
+
+# Your project-specific unwanted files:
+SpecWorld-ISTE.sln
+SpecWorld-ISTE_BurstDebugInformation_DoNotShip/
+build_BackUpThisFolder_ButDontShipItWithYourGame/
+build.apk
+.utmpr/
+.utmp/
