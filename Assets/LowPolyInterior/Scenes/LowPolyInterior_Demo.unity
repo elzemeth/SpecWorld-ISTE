@@ -7569,7 +7569,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 383870545}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -13925,7 +13925,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: bec1d3927f8ea7243a6b047852b64b00, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.617
+      value: 4.172
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: bec1d3927f8ea7243a6b047852b64b00, type: 3}
       propertyPath: m_LocalRotation.w
@@ -33244,22 +33244,27 @@ MonoBehaviour:
     actionType: 1
     moveTarget: {fileID: 0}
     voiceClip: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
+    talkExtraDelay: 0.2
     waitDuration: 0
     animationId: 2
+    animationDuration: 1.5
   - stepName: Walk
     actionType: 0
     moveTarget: {fileID: 383870546}
     voiceClip: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
+    talkExtraDelay: 0.2
     waitDuration: 0
     animationId: 1
+    animationDuration: 1.5
   - stepName: Wait
     actionType: 2
     moveTarget: {fileID: 0}
     voiceClip: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
+    talkExtraDelay: 0.2
     waitDuration: 0
     animationId: 0
+    animationDuration: 1.5
   autoStartOnPlay: 1
-  debugLogs: 1
 --- !u!4 &1761861959
 Transform:
   m_ObjectHideFlags: 0

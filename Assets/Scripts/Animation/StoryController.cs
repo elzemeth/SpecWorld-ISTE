@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 
 public class StoryController : MonoBehaviour
 {
@@ -8,77 +9,81 @@ public class StoryController : MonoBehaviour
 
     [Header("Options")]
     [SerializeField] private bool autoStartOnPlay = true;
-    [SerializeField] private bool debugLogs = true;
 
-    private int _currentIndex = -1;
-    private bool _isRunning;
-    private float _stepTimer;
+    private int _stepIndex = -1;
+    private bool _isRunning = false;
+    private Coroutine _waitCoroutine;
 
     private void Start()
     {
-        if (guide == null)
-            guide = FindFirstObjectByType<GuideManage>();
-
-        if (guide == null)
-        {
-            Debug.LogError("GuideManage not found");
-            return;
-        }
-
-        guide.OnDestinationReached -= OnGuideDestinationReached;
-        guide.OnDestinationReached += OnGuideDestinationReached;
-
         if (autoStartOnPlay)
+        {
             StartStory();
+        }
     }
 
     public void StartStory()
     {
-        if (steps == null || steps.Length == 0)
+        if (_isRunning)
         {
-            Debug.LogWarning("Steps empty");
+            Log("Story Already Working");
             return;
         }
 
-        _currentIndex = -1;
-        _isRunning = true;
-        _stepTimer = 0f;
+        if (guide == null)
+        {
+            guide = FindFirstObjectByType<GuideManage>();
+        }
 
-        Log("Story");
+        if (guide == null)
+        {
+            Debug.LogError("No GuideManage");
+            return;
+        }
+
+        if (steps == null || steps.Length == 0)
+        {
+            Debug.LogWarning("Empty Story Steps");
+            return;
+        }
+
+        _isRunning = true;
+        _stepIndex = -1;
+
+        guide.OnDestinationReached -= OnGuideDestinationReached;
+
+        Log("Story begin");
         NextStep();
     }
 
-    private void Update()
+    private void OnDestroy()
     {
-        if (!_isRunning)
-            return;
-
-        // Maybe ill make FixedUpdate
-        if (_stepTimer > 0f)
+        if (guide != null)
         {
-            _stepTimer -= Time.deltaTime;
-            if (_stepTimer <= 0f)
-            {
-                Log("Timer bitti, NextStep çağrılıyor.");
-                NextStep();
-            }
+            guide.OnDestinationReached -= OnGuideDestinationReached;
         }
     }
 
     private void NextStep()
     {
-        _currentIndex++;
+        if (_waitCoroutine != null)
+        {
+            StopCoroutine(_waitCoroutine);
+            _waitCoroutine = null;
+        }
 
-        if (_currentIndex >= steps.Length)
+        _stepIndex++;
+
+        if (steps == null || _stepIndex >= steps.Length)
         {
             Log("Story Over");
             _isRunning = false;
-            guide?.PlayIdle();
             return;
         }
 
-        var step = steps[_currentIndex];
-        Log($"Step {_currentIndex} - {step.stepName} - {step.actionType}");
+        var step = steps[_stepIndex];
+
+        Log($"Step {_stepIndex} - {step.actionType} - {step.stepName}");
 
         switch (step.actionType)
         {
@@ -97,11 +102,6 @@ public class StoryController : MonoBehaviour
             case StoryActionType.PlayAnimation:
                 HandlePlayAnimation(step);
                 break;
-
-            default:
-                Log("Unkown ActionType");
-                NextStep();
-                break;
         }
     }
 
@@ -109,83 +109,84 @@ public class StoryController : MonoBehaviour
     {
         if (step.moveTarget == null)
         {
-            Log("No Target");
+            Log("No MoveTarget");
             NextStep();
             return;
         }
 
         Log($"MoveTo -> {step.moveTarget.name}");
+
+        guide.OnDestinationReached -= OnGuideDestinationReached;
+        guide.OnDestinationReached += OnGuideDestinationReached;
+
         guide.GoToTarget(step.moveTarget.position);
-
-        _stepTimer = 0f;
-    }
-
-    private void HandleTalk(StoryStep step)
-    {
-        Log("Talk step");
-
-        guide.Talk(step.voiceClip);
-
-        float clipLen = (step.voiceClip != null) ? step.voiceClip.length : 0f;
-        _stepTimer = clipLen + Mathf.Max(0f, step.waitDuration);
-
-        if (_stepTimer <= 0f)
-        {
-            NextStep();
-        }
-    }
-
-    private void HandleWait(StoryStep step)
-    {
-        Log("Wait step");
-        guide.PlayIdle();
-        _stepTimer = Mathf.Max(0.1f, step.waitDuration);
-    }
-
-    private void HandlePlayAnimation(StoryStep step)
-    {
-        Log($"PlayAnimation step: {step.animationId}");
-
-        if (AnimationManager.Instance != null)
-            AnimationManager.Instance.ChangeState(step.animationId);
-
-        if (step.waitDuration > 0f)
-        {
-            _stepTimer = step.waitDuration;
-        }
-        else
-        {
-            NextStep();
-        }
     }
 
     private void OnGuideDestinationReached()
     {
-        if (!_isRunning) return;
+        guide.OnDestinationReached -= OnGuideDestinationReached;
 
-        Log("MoveTo Step Complete");
+        Log("NextStep after loc");
+        NextStep();
+    }
 
-        if (_currentIndex < 0 || _currentIndex >= steps.Length)
-            return;
-
-        var step = steps[_currentIndex];
-        if (step.actionType != StoryActionType.MoveTo)
-            return;
-
-        if (step.waitDuration > 0f)
+    private void HandleTalk(StoryStep step)
+    {
+        if (step.voiceClip == null)
         {
-            guide.PlayIdle();
-            _stepTimer = step.waitDuration;
-        }
-        else
-        {
+            Log("Talk no Voice");
             NextStep();
+            return;
         }
+
+        Log($"Talk -> {step.voiceClip.name}");
+
+        guide.Talk(step.voiceClip);
+
+        float duration = step.voiceClip.length + step.talkExtraDelay;
+        if (duration <= 0f) duration = 1f;
+
+        _waitCoroutine = StartCoroutine(WaitAndNextStep(duration));
+    }
+
+    private void HandleWait(StoryStep step)
+    {
+        if (step.waitDuration <= 0f)
+        {
+            Log("Wait <= 0");
+            NextStep();
+            return;
+        }
+
+        Log($"Wait -> {step.waitDuration} sn");
+
+        _waitCoroutine = StartCoroutine(WaitAndNextStep(step.waitDuration));
+    }
+
+    private void HandlePlayAnimation(StoryStep step)
+    {
+        Log($"PlayAnimation -> {step.animationId}");
+
+        if (AnimationManager.Instance != null)
+        {
+            AnimationManager.Instance.ChangeState(step.animationId);
+        }
+
+        float duration = step.animationDuration;
+        if (duration <= 0f) duration = 1f;
+
+        _waitCoroutine = StartCoroutine(WaitAndNextStep(duration));
+    }
+
+    private IEnumerator WaitAndNextStep(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        _waitCoroutine = null;
+        NextStep();
     }
 
     private void Log(string msg)
     {
-        if (!debugLogs) return;
-        Debug.Log($"StoryController: {msg}");
+        Debug.Log($"[StoryController] {msg}");
     }
 }
