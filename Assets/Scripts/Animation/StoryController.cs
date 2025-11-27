@@ -3,87 +3,92 @@ using UnityEngine;
 
 public class StoryController : MonoBehaviour
 {
-    [Header("References")]
+    [Header("Refs")]
     [SerializeField] private GuideManage guide;
+    [SerializeField] private AnimationManager animationManager;
+
+    [Header("Story")]
+    [SerializeField] private bool autoStartOnStart = true;
     [SerializeField] private StoryStep[] steps;
 
-    [Header("Options")]
-    [SerializeField] private bool autoStartOnPlay = true;
+    private int _currentStepIndex = -1;
 
-    private int _stepIndex = -1;
-    private bool _isRunning = false;
-    private Coroutine _waitCoroutine;
+    private Coroutine _activeRoutine;
+
+    private bool _waitingForMove = false;
+
+    private void Awake()
+    {
+        if (guide == null)
+            guide = FindFirstObjectByType<GuideManage>();
+
+        if (animationManager == null)
+            animationManager = FindFirstObjectByType<AnimationManager>();
+
+        if (guide == null)
+            Debug.LogWarning("No GuideManage");
+    }
+
+    private void OnEnable()
+    {
+        if (guide != null)
+            guide.OnDestinationReached += OnDestinationReached;
+    }
+
+    private void OnDisable()
+    {
+        if (guide != null)
+            guide.OnDestinationReached -= OnDestinationReached;
+    }
 
     private void Start()
     {
-        if (autoStartOnPlay)
+        if (autoStartOnStart)
         {
             StartStory();
         }
     }
-
     public void StartStory()
     {
-        if (_isRunning)
-        {
-            Log("Story Already Working");
-            return;
-        }
-
-        if (guide == null)
-        {
-            guide = FindFirstObjectByType<GuideManage>();
-        }
-
-        if (guide == null)
-        {
-            Debug.LogError("No GuideManage");
-            return;
-        }
-
         if (steps == null || steps.Length == 0)
         {
-            Debug.LogWarning("Empty Story Steps");
+            Log("Story Steps Empty");
             return;
         }
 
-        _isRunning = true;
-        _stepIndex = -1;
-
-        guide.OnDestinationReached -= OnGuideDestinationReached;
-
+        _currentStepIndex = 0;
         Log("Story begin");
-        NextStep();
+
+        RunCurrentStep();
     }
 
-    private void OnDestroy()
+    public void NextStep()
     {
-        if (guide != null)
-        {
-            guide.OnDestinationReached -= OnGuideDestinationReached;
-        }
-    }
+        _waitingForMove = false;
 
-    private void NextStep()
-    {
-        if (_waitCoroutine != null)
+        if (_activeRoutine != null)
         {
-            StopCoroutine(_waitCoroutine);
-            _waitCoroutine = null;
+            StopCoroutine(_activeRoutine);
+            _activeRoutine = null;
         }
 
-        _stepIndex++;
+        _currentStepIndex++;
 
-        if (steps == null || _stepIndex >= steps.Length)
+        if (_currentStepIndex >= steps.Length)
         {
             Log("Story Over");
-            _isRunning = false;
             return;
         }
 
-        var step = steps[_stepIndex];
+        RunCurrentStep();
+    }
+    private void RunCurrentStep()
+    {
+        if (_currentStepIndex < 0 || _currentStepIndex >= steps.Length)
+            return;
 
-        Log($"Step {_stepIndex} - {step.actionType} - {step.stepName}");
+        var step = steps[_currentStepIndex];
+        Log($"Step {_currentStepIndex} - {step.stepName} - {step.actionType}");
 
         switch (step.actionType)
         {
@@ -102,39 +107,56 @@ public class StoryController : MonoBehaviour
             case StoryActionType.PlayAnimation:
                 HandlePlayAnimation(step);
                 break;
+
+            case StoryActionType.DoorOpen:
+                HandleDoorOpen(step);
+                break;
         }
     }
 
     private void HandleMoveTo(StoryStep step)
     {
+        if (guide == null)
+        {
+            Log("Null Guide");
+            NextStep();
+            return;
+        }
+
         if (step.moveTarget == null)
         {
-            Log("No MoveTarget");
+            Log("Null MoveTo Target");
             NextStep();
             return;
         }
 
         Log($"MoveTo -> {step.moveTarget.name}");
-
-        guide.OnDestinationReached -= OnGuideDestinationReached;
-        guide.OnDestinationReached += OnGuideDestinationReached;
-
+        _waitingForMove = true;
         guide.GoToTarget(step.moveTarget.position);
     }
 
-    private void OnGuideDestinationReached()
+    private void OnDestinationReached()
     {
-        guide.OnDestinationReached -= OnGuideDestinationReached;
+        if (!_waitingForMove)
+            return;
 
-        Log("NextStep after loc");
+        _waitingForMove = false;
+        Log("Finished. Next Step");
         NextStep();
     }
 
     private void HandleTalk(StoryStep step)
     {
+        if (guide == null)
+        {
+            Log("No Guide");
+            NextStep();
+            return;
+        }
+
         if (step.voiceClip == null)
         {
-            Log("Talk no Voice");
+            Log("No Voice");
             NextStep();
             return;
         }
@@ -143,46 +165,111 @@ public class StoryController : MonoBehaviour
 
         guide.Talk(step.voiceClip);
 
-        float duration = step.voiceClip.length + step.talkExtraDelay;
-        if (duration <= 0f) duration = 1f;
+        float waitTime = step.voiceClip.length + step.talkExtraWait;
+        if (waitTime <= 0f)
+            waitTime = 0.1f;
 
-        _waitCoroutine = StartCoroutine(WaitAndNextStep(duration));
+        StartStepCoroutine(TalkRoutine(waitTime));
+    }
+
+    private IEnumerator TalkRoutine(float waitTime)
+    {
+        yield return new WaitForSeconds(waitTime);
+        Log("Talk is Over");
+        NextStep();
     }
 
     private void HandleWait(StoryStep step)
     {
-        if (step.waitDuration <= 0f)
-        {
-            Log("Wait <= 0");
-            NextStep();
-            return;
-        }
+        float duration = Mathf.Max(0.01f, step.waitDuration);
+        Log($"Wait -> {duration} sn");
+        StartStepCoroutine(WaitRoutine(duration));
+    }
 
-        Log($"Wait -> {step.waitDuration} sn");
-
-        _waitCoroutine = StartCoroutine(WaitAndNextStep(step.waitDuration));
+    private IEnumerator WaitRoutine(float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        NextStep();
     }
 
     private void HandlePlayAnimation(StoryStep step)
     {
-        Log($"PlayAnimation -> {step.animationId}");
-
-        if (AnimationManager.Instance != null)
+        if (animationManager == null)
         {
-            AnimationManager.Instance.ChangeState(step.animationId);
+            Log("No AnimationManager");
+            NextStep();
+            return;
         }
 
-        float duration = step.animationDuration;
-        if (duration <= 0f) duration = 1f;
+        Log($"PlayAnimation -> {step.animationId}");
+        animationManager.ChangeState(step.animationId);
 
-        _waitCoroutine = StartCoroutine(WaitAndNextStep(duration));
+        if (step.animationDuration > 0f)
+        {
+            StartStepCoroutine(AnimationWaitRoutine(step.animationDuration));
+        }
+        else
+        {
+            NextStep();
+        }
     }
 
-    private IEnumerator WaitAndNextStep(float seconds)
+    private IEnumerator AnimationWaitRoutine(float duration)
     {
-        yield return new WaitForSeconds(seconds);
-        _waitCoroutine = null;
+        yield return new WaitForSeconds(duration);
         NextStep();
+    }
+
+    private void HandleDoorOpen(StoryStep step)
+    {
+        if (step.door == null)
+        {
+            Log("Null Door Referance");
+            NextStep();
+            return;
+        }
+
+        Log($"DoorOpen -> {step.door.name}");
+
+        if (step.unlockBeforeOpen)
+        {
+            step.door.Unlock();
+            Log("unlockBeforeOpen");
+        }
+
+        step.door.OnDoorOpened -= OnDoorOpenedFromStory;
+        step.door.OnDoorOpenFailed -= OnDoorOpenFailedFromStory;
+
+        step.door.OnDoorOpened += OnDoorOpenedFromStory;
+        step.door.OnDoorOpenFailed += OnDoorOpenFailedFromStory;
+
+        step.door.TryOpen();
+    }
+
+    private void OnDoorOpenedFromStory(DoorController door)
+    {
+        door.OnDoorOpened -= OnDoorOpenedFromStory;
+        door.OnDoorOpenFailed -= OnDoorOpenFailedFromStory;
+
+        Log($"[DoorOpen] {door.name} is open.");
+        NextStep();
+    }
+
+    private void OnDoorOpenFailedFromStory(DoorController door)
+    {
+        door.OnDoorOpened -= OnDoorOpenedFromStory;
+        door.OnDoorOpenFailed -= OnDoorOpenFailedFromStory;
+
+        Log($"[DoorOpen] {door.name} locked.");
+        NextStep();
+    }
+
+    private void StartStepCoroutine(IEnumerator routine)
+    {
+        if (_activeRoutine != null)
+            StopCoroutine(_activeRoutine);
+
+        _activeRoutine = StartCoroutine(routine);
     }
 
     private void Log(string msg)

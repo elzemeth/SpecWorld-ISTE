@@ -8717,6 +8717,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8224622143809586456, guid: ede612d13ea3c8a4f9981c774aa0a21a, type: 3}
   m_PrefabInstance: {fileID: 432633985}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &443164375 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1357445559844659729, guid: e5f53f3e0e1518c4c9ec3be6d16f67b5, type: 3}
+  m_PrefabInstance: {fileID: 478117071}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &443930625
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9384,13 +9389,57 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1357445559844659729, guid: e5f53f3e0e1518c4c9ec3be6d16f67b5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 478117076}
   m_SourcePrefab: {fileID: 100100000, guid: e5f53f3e0e1518c4c9ec3be6d16f67b5, type: 3}
 --- !u!4 &478117072 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1357445559845092913, guid: e5f53f3e0e1518c4c9ec3be6d16f67b5, type: 3}
   m_PrefabInstance: {fileID: 478117071}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &478117076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 443164375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85d9e2c1149f3764896a61e509df3eb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DoorController
+  closedAngleY: 180
+  openAngleY: 60
+  openDuration: 1
+  openCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  startLocked: 0
+  startOpen: 0
 --- !u!4 &480892222 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2423500719253232714, guid: 34c2eb518c8f5904781322019a1deca0, type: 3}
@@ -33239,32 +33288,39 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StoryController
   guide: {fileID: 728233347}
+  animationManager: {fileID: 0}
+  autoStartOnStart: 1
   steps:
   - stepName: Talk
     actionType: 1
     moveTarget: {fileID: 0}
     voiceClip: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
-    talkExtraDelay: 0.2
+    talkExtraWait: 0.5
     waitDuration: 0
     animationId: 2
     animationDuration: 1.5
+    door: {fileID: 0}
+    unlockBeforeOpen: 0
   - stepName: Walk
     actionType: 0
     moveTarget: {fileID: 383870546}
     voiceClip: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
-    talkExtraDelay: 0.2
+    talkExtraWait: 0.5
     waitDuration: 0
     animationId: 1
     animationDuration: 1.5
-  - stepName: Wait
-    actionType: 2
-    moveTarget: {fileID: 0}
+    door: {fileID: 0}
+    unlockBeforeOpen: 0
+  - stepName: OpenDoor
+    actionType: 4
+    moveTarget: {fileID: 478117072}
     voiceClip: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
-    talkExtraDelay: 0.2
+    talkExtraWait: 0.5
     waitDuration: 0
-    animationId: 0
+    animationId: 3
     animationDuration: 1.5
-  autoStartOnPlay: 1
+    door: {fileID: 478117076}
+    unlockBeforeOpen: 0
 --- !u!4 &1761861959
 Transform:
   m_ObjectHideFlags: 0

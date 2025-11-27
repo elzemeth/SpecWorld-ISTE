@@ -13,12 +13,19 @@ public class StoryStep
 
     [Header("Talk")]
     public AudioClip voiceClip;
-    public float talkExtraDelay = 0.2f;
+    [Tooltip("Extra Delay")]
+    public float talkExtraWait = 0.5f;
 
     [Header("Wait")]
     public float waitDuration = 1f;
 
     [Header("PlayAnimation")]
-    public AnimationStateId animationId = AnimationStateId.Idle;
-    public float animationDuration = 1.5f;
+    public AnimationStateId animationId;
+    [Tooltip("Extra Delay")]
+    public float animationDuration = 1f;
+
+    [Header("DoorOpen")]
+    public DoorController door;
+    [Tooltip("Unlock and Open Door")]
+    public bool unlockBeforeOpen = false;
 }
