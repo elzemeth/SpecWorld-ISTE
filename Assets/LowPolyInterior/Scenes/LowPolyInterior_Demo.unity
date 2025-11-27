@@ -33288,23 +33288,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StoryController
   guide: {fileID: 728233347}
-  animationManager: {fileID: 0}
+  animationManager: {fileID: 728233341}
   autoStartOnStart: 1
   steps:
   - stepName: Talk
     actionType: 1
     moveTarget: {fileID: 0}
     voiceClip: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
-    talkExtraWait: 0.5
-    waitDuration: 0
+    talkExtraWait: 3
+    waitDuration: 3
     animationId: 2
-    animationDuration: 1.5
+    animationDuration: 3
     door: {fileID: 0}
     unlockBeforeOpen: 0
   - stepName: Walk
     actionType: 0
     moveTarget: {fileID: 383870546}
-    voiceClip: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
+    voiceClip: {fileID: 8300000, guid: b319a2e4ff8f5d840b82d8635b645d22, type: 3}
     talkExtraWait: 0.5
     waitDuration: 0
     animationId: 1
