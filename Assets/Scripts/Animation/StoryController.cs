@@ -12,10 +12,10 @@ public class StoryController : MonoBehaviour
     [SerializeField] private StoryStep[] steps;
 
     private int _currentStepIndex = -1;
-
-    private Coroutine _activeRoutine;
+    private bool _storyStarted = false;
 
     private bool _waitingForMove = false;
+    private Coroutine _activeRoutine;
 
     private void Awake()
     {
@@ -26,7 +26,10 @@ public class StoryController : MonoBehaviour
             animationManager = FindFirstObjectByType<AnimationManager>();
 
         if (guide == null)
-            Debug.LogWarning("No GuideManage");
+            Debug.LogWarning("[StoryController] GuideManage not found.");
+
+        if (animationManager == null)
+            Debug.LogWarning("[StoryController] AnimationManager not found.");
     }
 
     private void OnEnable()
@@ -48,16 +51,22 @@ public class StoryController : MonoBehaviour
             StartStory();
         }
     }
+
     public void StartStory()
     {
+        if (_storyStarted)
+            return;
+
+        _storyStarted = true;
+
         if (steps == null || steps.Length == 0)
         {
-            Log("Story Steps Empty");
+            Log("No story steps found. Story cannot be started.");
             return;
         }
 
         _currentStepIndex = 0;
-        Log("Story begin");
+        Log("Story started.");
 
         RunCurrentStep();
     }
@@ -76,12 +85,13 @@ public class StoryController : MonoBehaviour
 
         if (_currentStepIndex >= steps.Length)
         {
-            Log("Story Over");
+            Log("Story ended.");
             return;
         }
 
         RunCurrentStep();
     }
+
     private void RunCurrentStep()
     {
         if (_currentStepIndex < 0 || _currentStepIndex >= steps.Length)
@@ -113,25 +123,25 @@ public class StoryController : MonoBehaviour
                 break;
         }
     }
-
     private void HandleMoveTo(StoryStep step)
     {
         if (guide == null)
         {
-            Log("Null Guide");
+            Log("Guide not found, skipping MoveTo step.");
             NextStep();
             return;
         }
 
         if (step.moveTarget == null)
         {
-            Log("Null MoveTo Target");
+            Log("MoveTo target missing, skipping step.");
             NextStep();
             return;
         }
 
         Log($"MoveTo -> {step.moveTarget.name}");
         _waitingForMove = true;
+
         guide.GoToTarget(step.moveTarget.position);
     }
 
@@ -141,7 +151,7 @@ public class StoryController : MonoBehaviour
             return;
 
         _waitingForMove = false;
-        Log("Finished. Next Step");
+        Log("Destination reached, NextStep.");
         NextStep();
     }
 
@@ -149,14 +159,14 @@ public class StoryController : MonoBehaviour
     {
         if (guide == null)
         {
-            Log("No Guide");
+            Log("Guide not found, skipping Talk step.");
             NextStep();
             return;
         }
 
         if (step.voiceClip == null)
         {
-            Log("No Voice");
+            Log("Talk step has no voiceClip, skipping.");
             NextStep();
             return;
         }
@@ -175,14 +185,13 @@ public class StoryController : MonoBehaviour
     private IEnumerator TalkRoutine(float waitTime)
     {
         yield return new WaitForSeconds(waitTime);
-        Log("Talk is Over");
+        Log("Talk finished, NextStep.");
         NextStep();
     }
-
     private void HandleWait(StoryStep step)
     {
         float duration = Mathf.Max(0.01f, step.waitDuration);
-        Log($"Wait -> {duration} sn");
+        Log($"Wait -> {duration} seconds");
         StartStepCoroutine(WaitRoutine(duration));
     }
 
@@ -196,27 +205,58 @@ public class StoryController : MonoBehaviour
     {
         if (animationManager == null)
         {
-            Log("No AnimationManager");
+            Log("AnimationManager not found, skipping PlayAnimation step.");
             NextStep();
             return;
         }
 
         Log($"PlayAnimation -> {step.animationId}");
+
         animationManager.ChangeState(step.animationId);
 
-        if (step.animationDuration > 0f)
+        Animator anim = animationManager.GetComponent<Animator>();
+        if (anim == null)
         {
-            StartStepCoroutine(AnimationWaitRoutine(step.animationDuration));
-        }
-        else
-        {
+            Log("Animator not found, skipping to next step.");
             NextStep();
+            return;
         }
+
+        StartStepCoroutine(WaitForAnimationEndRoutine(anim));
     }
 
-    private IEnumerator AnimationWaitRoutine(float duration)
+    private IEnumerator WaitForAnimationEndRoutine(Animator anim)
     {
-        yield return new WaitForSeconds(duration);
+        int layer = 0;
+
+        yield return null;
+
+        while (anim.IsInTransition(layer))
+            yield return null;
+
+        var state = anim.GetCurrentAnimatorStateInfo(layer);
+
+        if (state.length <= 0f)
+        {
+            Log("State length is 0, skipping.");
+            NextStep();
+            yield break;
+        }
+
+        float clipLength = state.length;
+        Log($"Animation auto length detected: {clipLength} seconds");
+
+        while (true)
+        {
+            state = anim.GetCurrentAnimatorStateInfo(layer);
+
+            if (state.normalizedTime >= 1f && !anim.IsInTransition(layer))
+                break;
+
+            yield return null;
+        }
+
+        Log("Animation finished, NextStep.");
         NextStep();
     }
 
@@ -224,7 +264,7 @@ public class StoryController : MonoBehaviour
     {
         if (step.door == null)
         {
-            Log("Null Door Referance");
+            Log("DoorOpen step has no door reference, skipping.");
             NextStep();
             return;
         }
@@ -234,7 +274,14 @@ public class StoryController : MonoBehaviour
         if (step.unlockBeforeOpen)
         {
             step.door.Unlock();
-            Log("unlockBeforeOpen");
+            Log("Door was unlocked before opening.");
+        }
+
+        if (step.door.IsOpen)
+        {
+            Log($"Door {step.door.name} is already open, NextStep.");
+            NextStep();
+            return;
         }
 
         step.door.OnDoorOpened -= OnDoorOpenedFromStory;
@@ -251,7 +298,7 @@ public class StoryController : MonoBehaviour
         door.OnDoorOpened -= OnDoorOpenedFromStory;
         door.OnDoorOpenFailed -= OnDoorOpenFailedFromStory;
 
-        Log($"[DoorOpen] {door.name} is open.");
+        Log($"[DoorOpen] {door.name} opened, NextStep.");
         NextStep();
     }
 
@@ -260,7 +307,7 @@ public class StoryController : MonoBehaviour
         door.OnDoorOpened -= OnDoorOpenedFromStory;
         door.OnDoorOpenFailed -= OnDoorOpenFailedFromStory;
 
-        Log($"[DoorOpen] {door.name} locked.");
+        Log($"[DoorOpen] {door.name} failed to open (locked?), NextStep anyway.");
         NextStep();
     }
 

@@ -4,7 +4,7 @@ using UnityEngine;
 [Serializable]
 public class StoryStep
 {
-    [Header("Genel")]
+    [Header("General")]
     public string stepName;
     public StoryActionType actionType;
 
@@ -21,8 +21,6 @@ public class StoryStep
 
     [Header("PlayAnimation")]
     public AnimationStateId animationId;
-    [Tooltip("Extra Delay")]
-    public float animationDuration = 1f;
 
     [Header("DoorOpen")]
     public DoorController door;
