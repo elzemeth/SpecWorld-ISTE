@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class DangerousObject : MonoBehaviour
 {
@@ -13,26 +13,28 @@ public class DangerousObject : MonoBehaviour
     void Start()
     {
         Renderer rend = GetComponent<Renderer>();
-
         objectMaterial = rend.material;
         originalColor = objectMaterial.color;
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Player") && !isWarning)
+        bool isPlayer = other.CompareTag("Player");
+        bool isHand = other.CompareTag("RightHand") || other.CompareTag("LeftHand");
+
+        if ((isPlayer || isHand) && !isWarning)
         {
             isWarning = true;
 
+            // 🔊 NPC konuşur
             guideManager.Talk(warningSound);
 
             objectMaterial.color = warningColor;
-
-            Invoke("FixColor", 3f);
+            Invoke(nameof(FixColor), 3f);
         }
     }
 
-    public void FixColor()
+    void FixColor()
     {
         objectMaterial.color = originalColor;
         isWarning = false;

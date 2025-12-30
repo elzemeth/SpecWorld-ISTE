@@ -1,92 +1,109 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 using System;
+using System.Collections;
 
 public class GuideManager : MonoBehaviour
 {
-    [SerializeField] Transform player;
-    public float walkSpeed;
-    public float waitDistance;
-
+    [Header("References")]
     [SerializeField] NavMeshAgent agent;
     [SerializeField] AudioSource audioSource;
     [SerializeField] Animator animator;
+    [SerializeField] Transform player;
 
-    [SerializeField] bool isMoving = false;
-    [SerializeField] bool isWaiting = false;
+    [Header("Movement")]
+    public float walkSpeed = 2.5f;
+    public float arriveDistance = 0.35f;
+
+    private bool isMoving = false;
+    private Vector3 currentTarget;
 
     public Action OnDestinationReached;
+
+    void Awake()
+    {
+        agent = GetComponent<NavMeshAgent>();
+    }
+
     void Start()
     {
         agent.speed = walkSpeed;
+        agent.stoppingDistance = 0f;
+        agent.autoBraking = true;
+        agent.updateRotation = false;
+
         player = GameObject.FindGameObjectWithTag("Player").transform;
     }
+
     void Update()
     {
+        if (!isMoving) return;
 
-        if (isMoving && !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.5f)
+        float dist = Vector3.Distance(transform.position, currentTarget);
+
+        if (dist <= arriveDistance)
         {
             isMoving = false;
-            PlayAnimation("Idle");
+            agent.isStopped = true;
+
+            PlayAnimation(false);
             LookAtPlayer();
 
             OnDestinationReached?.Invoke();
-        }
-
-        if(isMoving)
-        {
-            float distance = Vector3.Distance(transform.position, player.position);
-
-            if (distance > waitDistance)
-            {
-                agent.isStopped = true;
-                isWaiting = true;
-                PlayAnimation("Idle");
-                LookAtPlayer();
-            }
-            else
-            {
-                agent.isStopped = false;
-                isWaiting = false;
-                PlayAnimation("Walk");
-            }
         }
     }
 
     public void GoToTarget(Vector3 target)
     {
-        isMoving = true;
-        isWaiting = false;
-        agent.isStopped = false;
-        agent.SetDestination(target);
-        PlayAnimation("Walk");
+        StopAllCoroutines();
+        StartCoroutine(GoToTargetSafe(target));
     }
 
-    public void Talk(AudioClip audio)
+    IEnumerator GoToTargetSafe(Vector3 target)
     {
-        if(audioSource.isPlaying)
+        agent.isStopped = true;
+        yield return null; 
+
+        agent.ResetPath();
+        agent.isStopped = false;
+
+        currentTarget = target;
+        isMoving = true;
+
+        agent.SetDestination(target);
+        PlayAnimation(true);
+    }
+
+    public void Talk(AudioClip clip)
+    {
+        if (clip == null || audioSource == null)
+            return;
+
+        if (audioSource.isPlaying)
             audioSource.Stop();
 
-        audioSource.clip = audio;
+        audioSource.clip = clip;
         audioSource.Play();
 
-        LookAtPlayer();
-
-        agent.isStopped = true;
-        PlayAnimation("Talk");
+        LookAtPlayer(); 
     }
 
-    public void LookAtPlayer()
+    void LookAtPlayer()
     {
-        Vector3 playerPos = new Vector3(player.position.x, player.position.y, player.position.z);
-        transform.LookAt(playerPos);
+        if (player == null) return;
+
+        Vector3 lookPos = new Vector3(
+            player.position.x,
+            transform.position.y,
+            player.position.z
+        );
+
+        transform.LookAt(lookPos);
     }
 
-    public void PlayAnimation(string state)
+    void PlayAnimation(bool walking)
     {
-        if (state == "Walk")
-            animator.SetBool("isWalking", true);
-        else
-            animator.SetBool("isWalking", false);
+        if (animator != null)
+            animator.SetBool("isWalking", walking);
     }
 }

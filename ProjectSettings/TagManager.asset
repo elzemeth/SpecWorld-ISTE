@@ -6,6 +6,8 @@ TagManager:
   tags:
   - Anchor
   - Dangerous
+  - RightHand
+  - LeftHand
   layers:
   - Default
   - TransparentFX

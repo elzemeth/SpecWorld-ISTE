@@ -1,55 +1,80 @@
-using System.Collections.Generic;
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class TourController : MonoBehaviour
 {
+    [Header("References")]
     public GuideManager guideManager;
-    public List<Transform> waypoints;
-    private int currentWaypointIndex = 0;
-    public float waitAtWaypoint = 3.0f;
 
-    private void Start()
+    [Header("Tour Settings")]
+    public List<Transform> waypoints;
+    public List<AudioClip> routeVoices;
+    public float waitAtWaypoint = 2f;
+
+    private int index = 0;
+    private bool waiting = false;
+
+    void Start()
     {
-        guideManager.OnDestinationReached += HandleArrival;
-        MoveToNextPoint();
+        if (guideManager == null)
+            guideManager = FindObjectOfType<GuideManager>();
+
+        guideManager.OnDestinationReached += OnArrived;
+
+        if (waypoints != null && waypoints.Count > 0)
+        {
+            index = 0;
+            guideManager.GoToTarget(waypoints[index].position);
+        }
     }
 
-    private void OnDestroy()
+    void OnDestroy()
     {
         if (guideManager != null)
-            guideManager.OnDestinationReached -= HandleArrival;
+            guideManager.OnDestinationReached -= OnArrived;
     }
 
-    void HandleArrival()
+    void OnArrived()
     {
-        StartCoroutine(WaitAndGoNext());
+        if (!waiting)
+            StartCoroutine(HandleArrival());
     }
 
-    IEnumerator WaitAndGoNext()
+    IEnumerator HandleArrival()
     {
-        Debug.Log("Hedefe varýldý, bekleniyor...");
-        yield return new WaitForSeconds(waitAtWaypoint);
+        waiting = true;
 
-        currentWaypointIndex++;
-        MoveToNextPoint();
-    }
-
-    public void MoveToNextPoint()
-    {
-        if (waypoints.Count == 0 || currentWaypointIndex >= waypoints.Count)
+        if (routeVoices != null &&
+            index < routeVoices.Count &&
+            routeVoices[index] != null)
         {
-            Debug.Log("Tour finished or no waypoints set.");
-            return;
+            guideManager.Talk(routeVoices[index]);
         }
 
-        Transform targetPoint = waypoints[currentWaypointIndex];
-        guideManager.GoToTarget(targetPoint.position);
+        yield return new WaitForSeconds(waitAtWaypoint);
+
+        index++;
+
+        if (index < waypoints.Count)
+        {
+            guideManager.GoToTarget(waypoints[index].position);
+        }
+        else
+        {
+            Debug.Log("Tur tamamlandÄ±.");
+        }
+
+        waiting = false;
     }
 
     public void ResetTour()
     {
-        currentWaypointIndex = 0;
-        MoveToNextPoint();
+        StopAllCoroutines();
+        waiting = false;
+        index = 0;
+
+        if (waypoints != null && waypoints.Count > 0)
+            guideManager.GoToTarget(waypoints[index].position);
     }
 }
